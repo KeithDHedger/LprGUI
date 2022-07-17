@@ -1,6 +1,6 @@
 PROGRAM=lprgui
 PREFIX=/usr
-SOURCES=printdialog.cpp
+SOURCES=lprgui.cpp
 
 all:
 	rm -f $(PROGRAM)
