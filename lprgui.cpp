@@ -25,6 +25,11 @@ QComboBox	*qual;
 QComboBox	*size;
 QCheckBox	*landscape;
 QCheckBox	*monochrome;
+QLineEdit	*customOptions;
+QLineEdit	*copies;
+QStringList	paperSizes;
+QStringList	defaultSize;
+bool			resetPaperSizes=false;
 
 QSettings	prefs("KDHedger","LprGUI");
 
@@ -45,6 +50,16 @@ QStringList runPipeAndCapture(QString command)
 	return(dump);
 }
 
+void remakePaperSizes(void)
+{
+	size->clear();
+	paperSizes.clear();
+	defaultSize<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F\"*\" '{print $2}'|awk '{print $1}'").arg(plist->currentText()));
+	paperSizes<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F: '{print $2}'|sed 's/*//g'|sed 's/Custom.WIDTHxHEIGHT//g'").arg(plist->currentText()));
+	paperSizes=paperSizes.at(0).split(" ");
+	size->addItems(paperSizes);
+	size->setCurrentText(defaultSize.at(0));
+}
 
 void saveSettings(void)
 {
@@ -53,6 +68,48 @@ void saveSettings(void)
 	prefs.setValue("size",size->currentText());
 	prefs.setValue("landscape",landscape->isChecked());
 	prefs.setValue("monochrome",monochrome->isChecked());
+	prefs.setValue("options",customOptions->text().trimmed());
+	prefs.setValue("copies",copies->text().trimmed());
+}
+
+void retsoreSettings(void)
+{
+/*
+//editor
+	this->prefsFunctionMenuLayout=this->prefs.value("editor/funcsort",4).toInt();
+	this->prefsDepth=this->prefs.value("editor/prefsdepth",1).toInt();
+	this->prefsToolBarLayout=this->prefs.value("editor/toolbarlayout","NSOsURsBWsFGsE9ELEDEE").toString();
+	this->prefsMaxTabChars=this->prefs.value("editor/maxtabchars",20).toInt();
+	this->prefsMaxMenuChars=this->prefs.value("editor/maxfuncchars",64).toInt();
+	this->prefsTerminalCommand=this->prefs.value("editor/terminalcommand","xterm -e").toString();
+	this->prefsRootCommand=this->prefs.value("editor/rootcommand","gtksu -- ").toString();
+	this->prefsQtDocDir=this->prefs.value("editor/qtdocdir","/usr/share/doc/qt5").toString();
+	this->prefsNoOpenduplicate=this->prefs.value("editor/noopendup",QVariant(bool(true))).value<bool>();
+	this->prefsNoWarnings=this->prefs.value("editor/nowarnings",QVariant(bool(false))).value<bool>();
+	this->recentFiles->maxFiles=this->prefs.value("editor/maxrecents",10).toInt();
+
+*/
+	size->setCurrentText(prefs.value("size","A4").toString());
+	if(prefs.contains("printer")==true)
+		{
+			plist->setCurrentText(prefs.value("printer").toString());
+			resetPaperSizes=true;
+		}
+	qual->setCurrentText(prefs.value("quality","Normal").toString());
+
+//	plist->setCurrentText(prefs.value("printer"));
+//	plist->setCurrentText(prefs.value("printer"));
+//	plist->setCurrentText(prefs.value("printer"));
+//	plist->setCurrentText(prefs.value("printer"));
+//	plist->setCurrentText(prefs.value("printer"));
+//	prefs.setValue("printer",);
+//	prefs.setValue("quality",qual->currentText());
+
+//	prefs.setValue("size",size->currentText());
+//	prefs.setValue("landscape",landscape->isChecked());
+//	prefs.setValue("monochrome",monochrome->isChecked());
+//	prefs.setValue("options",customOptions->text().trimmed());
+//	prefs.setValue("copies",copies->text().trimmed());
 }
 
 int main(int argc, char **argv)
@@ -72,12 +129,12 @@ int main(int argc, char **argv)
 	QPushButton			*printTheFiles;
 	QCommandLineParser	parser;
 	int					quality=4;
-	QStringList			paperSizes;
-	QStringList			defaultSize;
+//	QStringList			paperSizes;
+//	QStringList			defaultSize;
 //	QCheckBox			landscape("Landscape");
 //	QCheckBox			monochrome("Monochrome");
-	QLineEdit			customOptions;
-	QLineEdit			copies("1");
+//	QLineEdit			customOptions;
+//	QLineEdit			copies("1");
 	QPushButton			*button;
 
 	plist=new QComboBox;
@@ -85,6 +142,8 @@ int main(int argc, char **argv)
 	size=new QComboBox;
 	landscape=new QCheckBox("Landscape");
 	monochrome=new QCheckBox("Monochrome");
+	customOptions=new QLineEdit("");
+	copies=new QLineEdit("1");
 
 	app.setOrganizationName("KDHedger");
 	app.setApplicationName("LprGui");
@@ -111,15 +170,9 @@ int main(int argc, char **argv)
 	hlayout->addWidget(label);
 	hlayout->addWidget(plist);
 	vlayout->addLayout(hlayout);
-	QObject::connect(plist,QOverload<int>::of(&QComboBox::activated),[&defaultSize,&paperSizes](int index)
+	QObject::connect(plist,QOverload<int>::of(&QComboBox::activated),[](int index)
 		{
-			paperSizes.clear();
-			defaultSize<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F\"*\" '{print $2}'|awk '{print $1}'").arg(plist->currentText()));
-			paperSizes<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F: '{print $2}'|sed 's/*//g'|sed 's/Custom.WIDTHxHEIGHT//g'").arg(plist->currentText()));
-			paperSizes=paperSizes.at(0).split(" ");
-			size->clear();
-			size->addItems(paperSizes);
-			size->setCurrentText(defaultSize.at(0));
+			remakePaperSizes();
 		});
 
 //quality
@@ -171,14 +224,14 @@ int main(int argc, char **argv)
 	hlayout=new QHBoxLayout;
 	label=new QLabel("Options:\t");
 	hlayout->addWidget(label);
-	hlayout->addWidget(&customOptions);
+	hlayout->addWidget(customOptions);
 	vlayout->addLayout(hlayout);
 
 //number of copies
 	hlayout=new QHBoxLayout;
 	label=new QLabel("Copies:\t");
 	hlayout->addWidget(label);
-	hlayout->addWidget(&copies);
+	hlayout->addWidget(copies);
 	vlayout->addLayout(hlayout);
 
 	hlayout=new QHBoxLayout;
@@ -198,7 +251,7 @@ int main(int argc, char **argv)
 
 //print
 	printTheFiles=new QPushButton("Print files");
-	QObject::connect(printTheFiles,&QPushButton::clicked,[&printFiles,&filenames,&quality,&customOptions,&copies]()
+	QObject::connect(printTheFiles,&QPushButton::clicked,[&printFiles,&filenames,&quality]()
 		{
 			QStringList args;
 			QStringList coptions;
@@ -210,10 +263,10 @@ int main(int argc, char **argv)
 					args<<"-P"<<plist->currentText();
 					args<<"-o"<<QString("print-quality=%1").arg(quality);
 					args<<"-o"<<QString("media=%1").arg(size->currentText());
-					if(customOptions.text().isEmpty()==false)
+					if(customOptions->text().isEmpty()==false)
 						{
 							coptions.clear();
-							coptions=customOptions.text().split(':');
+							coptions=customOptions->text().split(':');
 							for(int k=0;k<coptions.count();k++)
 								args<<"-o"<<coptions.at(k);
 						}
@@ -223,7 +276,7 @@ int main(int argc, char **argv)
 						args<<"-o"<<"print-color-mode=monochrome";
 					else
 						args<<"-o"<<"print-color-mode=color";
-					args<<"-#"<<copies.text().trimmed();
+					args<<"-#"<<copies->text().trimmed();
 					args<<printFiles.at(j).trimmed();
 					QProcess::startDetached("lpr",args);
 					qDebug()<<"lpr"<<args.join(" ");
@@ -232,30 +285,71 @@ int main(int argc, char **argv)
 	hlayout->addWidget(printTheFiles);
 	vlayout->addLayout(hlayout);
 
+//set default paper size
+	size->clear();
+	defaultSize<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F\"*\" '{print $2}'|awk '{print $1}'").arg(plist->currentText()));
+	paperSizes<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F: '{print $2}'|sed 's/*//g'|sed 's/Custom.WIDTHxHEIGHT//g'").arg(plist->currentText()));
+	paperSizes=paperSizes.at(0).split(" ");
+	size->addItems(paperSizes);
+	size->setCurrentText(defaultSize.at(0));
+
+	retsoreSettings();
+	if(resetPaperSizes==true)
+		{
+			size->clear();
+			paperSizes.clear();
+			paperSizes<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F: '{print $2}'|sed 's/*//g'|sed 's/Custom.WIDTHxHEIGHT//g'").arg(plist->currentText()));
+			paperSizes=paperSizes.at(0).split(" ");
+			size->addItems(paperSizes);
+			size->setCurrentText(prefs.value("size","A4").toString());
+		}
+	if(qual->currentText().compare("draft",Qt::CaseInsensitive)==0)
+		quality=3;
+	if(qual->currentText().compare("normal",Qt::CaseInsensitive)==0)
+		quality=4;
+	if(qual->currentText().compare("best",Qt::CaseInsensitive)==0)
+		quality=5;
+//	defaultSize<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F\"*\" '{print $2}'|awk '{print $1}'").arg(plist->currentText()));
+//	paperSizes<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F: '{print $2}'|sed 's/*//g'|sed 's/Custom.WIDTHxHEIGHT//g'").arg(plist->currentText()));
+//	paperSizes=paperSizes.at(0).split(" ");
+//	size->clear();
+//	size->addItems(paperSizes);
+//	size->setCurrentText(defaultSize.at(0));
+//	retsoreSettings();
+
+//			paperSizes.clear();
+//			defaultSize<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F\"*\" '{print $2}'|awk '{print $1}'").arg(plist->currentText()));
+//			paperSizes<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F: '{print $2}'|sed 's/*//g'|sed 's/Custom.WIDTHxHEIGHT//g'").arg(plist->currentText()));
+//			paperSizes=paperSizes.at(0).split(" ");
+//			size->clear();
+//			size->addItems(paperSizes);
+//			size->setCurrentText(defaultSize.at(0));
+
+
+
+
+
 //files to print
 	printFiles=parser.positionalArguments();
 	if(printFiles.count())
 		filenames.setText(printFiles.join(':'));
 //set printer
 	if(parser.isSet("printer"))
-		plist->setCurrentText(parser.value("printer"));
-//set default paper size
-	defaultSize<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F\"*\" '{print $2}'|awk '{print $1}'").arg(plist->currentText()));
-	paperSizes<<runPipeAndCapture(QString("lpoptions -p %1 -l|grep \"PageSize\"|awk -F: '{print $2}'|sed 's/*//g'|sed 's/Custom.WIDTHxHEIGHT//g'").arg(plist->currentText()));
-	paperSizes=paperSizes.at(0).split(" ");
-	size->addItems(paperSizes);
-	size->setCurrentText(defaultSize.at(0));
+		{
+			plist->setCurrentText(parser.value("printer"));
+			remakePaperSizes();
+		}
 //set quality
 	if(parser.isSet("quality"))
 		{
-			if(parser.value("quality").compare("draft")==0)
+			if(parser.value("quality").compare("draft",Qt::CaseInsensitive)==0)
 				quality=3;
-			if(parser.value("quality").compare("normal")==0)
+			if(parser.value("quality").compare("normal",Qt::CaseInsensitive)==0)
 				quality=4;
-			if(parser.value("quality").compare("best")==0)
+			if(parser.value("quality").compare("best",Qt::CaseInsensitive)==0)
 				quality=5;
+			qual->setCurrentIndex(quality-3);
 		}
-	qual->setCurrentIndex(quality-3);
 //set paper size
 	if(parser.isSet("size"))
 		size->setCurrentText(parser.value("size"));
@@ -264,13 +358,13 @@ int main(int argc, char **argv)
 		landscape->setChecked(true);
 //set custom options
 	if(parser.isSet("options"))
-		customOptions.setText(parser.value("options"));
+		customOptions->setText(parser.value("options"));
 //set monochrome
 	if(parser.isSet("monochrome"))
 		monochrome->setChecked(true);
 //set number of copies to print
 	if(parser.isSet("copies"))
-		copies.setText(parser.value("copies"));
+		copies->setText(parser.value("copies"));
 
 	window.setMinimumWidth(400);
 	window.setLayout(vlayout);
