@@ -20,3 +20,4 @@ make
 sudo make install
 or make INSTALL_ROOT="/path/to/install/location" install
 
+You can run the application without needing to install it if you just want to try it.
