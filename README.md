@@ -26,6 +26,7 @@ Files to be printed can be selected via the 'Select Files' button or entered int
 /media/LinuxData/Development64/CPPScripts/qt5/hilighting/C++.txt.cpp:/media/LinuxData/Development64/CPPScripts/qt5/hilighting/testqthilite.cpp
 
 Options can be entered into the options box seperated by a colon eg:
+
 orientation-requested=6:number-up=4
 
 Custom options override prefs and cli options.
