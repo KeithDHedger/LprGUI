@@ -22,7 +22,7 @@ or make INSTALL_ROOT="/path/to/install/location" install
 
 You can run the application without needing to install it if you just want to try it.
 
-Files to be printed can be selected via the 'Select Files' button or entered into the files box manuall, files should be sepereated by a colon like so:
+Files to be printed can be selected via the 'Select Files' button or entered into the files box manualy, files should be sepereated by a colon like so:
 /media/LinuxData/Development64/CPPScripts/qt5/hilighting/C++.txt.cpp:/media/LinuxData/Development64/CPPScripts/qt5/hilighting/testqthilite.cpp
 
 Options can be entered into the options box seperated by a colon eg:
