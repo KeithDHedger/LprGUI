@@ -28,5 +28,9 @@ Files to be printed can be selected via the 'Select Files' button or entered int
 Options can be entered into the options box seperated by a colon eg:
 orientation-requested=6:number-up=4
 
+Custom options override prefs and cli options.
+
 Options are printer dependant and can be found with:
 lpoptions -p NAMEOFPRINTER
+
+Finished saving and restoring options, have fun!
