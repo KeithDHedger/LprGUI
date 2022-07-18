@@ -128,6 +128,11 @@ int main(int argc, char **argv)
 	copies=new QLineEdit("1");
 	fileNames=new QLineEdit("");
 
+fileNames->setAcceptDrops(true);
+window.setAcceptDrops(true);
+fileNames->setDragEnabled(true);
+//window.setDragEnabled(true);
+
 	app.setOrganizationName("KDHedger");
 	app.setApplicationName("LprGui");
 	app.setApplicationVersion("0.0.2");
@@ -146,7 +151,7 @@ int main(int argc, char **argv)
 	parser.addVersionOption();
 	parser.process(app);
 
-	window.setWindowTitle("Print");
+	window.setWindowTitle("Lpr Print GUI");
 
 	vlayout->setAlignment(Qt::AlignTop);
 
