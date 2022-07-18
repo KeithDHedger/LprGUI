@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Lpr GUI
+Comment=GUI for lpr command
+Terminal=false
+Type=Application
+Categories=Utility;
+Icon=printer
+Exec=lprgui
