@@ -5,6 +5,8 @@ QT5 based frontend for lpr cli command.<br>
 This is a simple gui frontend to the lpr command, as qt5 doesn't play well with cups, if your app allows you to set a print command you can use this.
 There are other GU@I's for lp/lpr but they seem to have large dependencies, or need specific librarary versions, this application just needs lpr and lpoptions which are part of CUPS and a reasonable new QT5, which most distros will have installed as default.<br>
 
+You can also use this as a standalone app to print any file.
+
 You will also of course need a build system ( g++,make qt5 dev files etc ).<br>
 
 building/installing:<br>
