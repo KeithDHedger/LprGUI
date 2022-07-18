@@ -9,7 +9,7 @@ all:
 
 install:
 	install -D $(PROGRAM) $(DESTDIR)$(PREFIX)/bin/$(PROGRAM)
-	install -D $(PROGRAM) $(DESTDIR)$(PREFIX)/share/applications/$(DESKTOPFILE)
+	install -D $(DESKTOPFILE) $(DESTDIR)$(PREFIX)/share/applications/$(DESKTOPFILE)
 
 uninstall:
 	rm $(DESTDIR)/$(PREFIX)/bin/$(PROGRAM)
