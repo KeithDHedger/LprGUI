@@ -8,6 +8,8 @@ all:
 	g++ -Wall `pkg-config --cflags --libs Qt5Widgets` -fPIC $(SOURCES) -o $(PROGRAM)
 
 install:
+	rm -f $(PROGRAM)
+	g++ -Wall `pkg-config --cflags --libs Qt5Widgets` -fPIC $(SOURCES) -o $(PROGRAM)
 	install -D $(PROGRAM) $(DESTDIR)$(PREFIX)/bin/$(PROGRAM)
 	install -D $(DESKTOPFILE) $(DESTDIR)$(PREFIX)/share/applications/$(DESKTOPFILE)
 
