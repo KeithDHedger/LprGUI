@@ -79,9 +79,16 @@ void doPrint(void)
 	QStringList filestoprint;
 
 	filestoprint=fileNames->text().trimmed().split(':');
+	if(customOptions->text().isEmpty()==false)
+		{
+			coptions.clear();
+			coptions=customOptions->text().split(':');
+		}
+
 	for(int j=0;j<filestoprint.count();j++)
 		{
 			args.clear();
+
 			args<<"-P"<<plist->currentText();
 			args<<"-o"<<QString("print-quality=%1").arg(qual->currentIndex()+3);
 			args<<"-o"<<QString("media=%1").arg(size->currentText());
@@ -94,8 +101,6 @@ void doPrint(void)
 			args<<"-#"<<copies->text().trimmed();
 			if(customOptions->text().isEmpty()==false)
 				{
-					coptions.clear();
-					coptions=customOptions->text().split(':');
 					for(int k=0;k<coptions.count();k++)
 						args<<"-o"<<coptions.at(k);
 				}
@@ -226,6 +231,16 @@ int main(int argc, char **argv)
 	button=new QPushButton("Quit");
 	QObject::connect(button,&QPushButton::clicked,[&app]()
 		{
+			app.quit();
+		});
+	hlayout->addWidget(button);
+	hlayout->addStretch();
+
+//print and quit
+	button=new QPushButton("Print files and quit");
+	QObject::connect(button,&QPushButton::clicked,[&app]()
+		{
+			doPrint();
 			app.quit();
 		});
 	hlayout->addWidget(button);
