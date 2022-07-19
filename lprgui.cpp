@@ -20,6 +20,7 @@
 
 #include <QtWidgets>
 
+QDialog		*window;
 QComboBox	*plist;
 QComboBox	*qual;
 QComboBox	*size;
@@ -70,6 +71,7 @@ void saveSettings(void)
 	prefs.setValue("monochrome",monochrome->isChecked());
 	prefs.setValue("options",customOptions->text().trimmed());
 	prefs.setValue("copies",copies->text().trimmed());
+	prefs.setValue("geometry",window->saveGeometry());
 }
 
 void doPrint(void)
@@ -114,7 +116,7 @@ void doPrint(void)
 int main(int argc, char **argv)
 {
 	QApplication			app(argc, argv);
-	QDialog				window(nullptr,Qt::Dialog);
+//	QDialog				window(nullptr,Qt::Dialog);
 	QVBoxLayout			*vlayout=new QVBoxLayout;
 	QHBoxLayout			*hlayout=new QHBoxLayout;
 	QLabel				*label=new QLabel("Printers:");
@@ -124,6 +126,7 @@ int main(int argc, char **argv)
 	QStringList			printerslist;
 	QStringList			fileslist;
 
+	window=new QDialog(nullptr,Qt::Dialog);
 	plist=new QComboBox;
 	qual=new QComboBox;
 	size=new QComboBox;
@@ -151,7 +154,7 @@ int main(int argc, char **argv)
 	parser.addVersionOption();
 	parser.process(app);
 
-	window.setWindowTitle("Lpr Print GUI");
+	window->setWindowTitle("Lpr Print GUI");
 
 	vlayout->setAlignment(Qt::AlignTop);
 
@@ -191,7 +194,7 @@ int main(int argc, char **argv)
 //files
 	hlayout=new QHBoxLayout;
 	button=new QPushButton("Select files");
-	QObject::connect(button,&QPushButton::clicked,[&window]()
+	QObject::connect(button,&QPushButton::clicked,[]()
 		{
 			QStringList	files;
 			QFileDialog dialog(nullptr,Qt::Dialog|Qt::WindowStaysOnTopHint);
@@ -304,10 +307,11 @@ int main(int argc, char **argv)
 	if(parser.isSet("copies"))
 		copies->setText(parser.value("copies"));
 
-	window.setMinimumWidth(400);
-	window.setLayout(vlayout);
-	window.adjustSize();
-	window.show();
+	window->setLayout(vlayout);
+	if(window->restoreGeometry(prefs.value("geometry").toByteArray())==false)
+		window->resize(480,200);
+	
+	window->show();
 
 	retval=app.exec();
 
