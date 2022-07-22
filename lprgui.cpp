@@ -30,6 +30,13 @@ QLineEdit	*customOptions;
 QLineEdit	*copies;
 QLineEdit	*fileNames;
 
+QComboBox	*opts;
+QDialog		*optionsWindow;
+QLineEdit	*setoption;
+QCheckBox	*useoption;
+QLineEdit	*option;
+
+
 QSettings	prefs("KDHedger","LprGUI");
 
 QStringList runPipeAndCapture(QString command)
@@ -113,10 +120,113 @@ void doPrint(void)
 		}
 }
 
+void setOptionsCombo(void)
+{
+	QStringList options=runPipeAndCapture(QString("lpoptions -p '%1'|sed -n \"s|\\([^=]*\\)=\\([^' ]*\\s\\)|\\1=\\2\\n|pg\"|awk -F\"'\" '{print $1 $2 \"\\n\" $NF}'|sort -u|awk '{$1=$1};NF'").arg(plist->currentText()));	
+
+	opts->clear();
+	for(int j=0;j<options.count();j++)
+		{
+			opts->addItem(options.at(j).split('=').at(0));
+			opts->setItemData(j,QString("0%1").arg(options.at(j).split('=').at(1)));
+		}
+	useoption->setChecked(false);
+	customOptions->setText("");
+}
+
+void buildOptionsDialog(void)
+{
+	QVBoxLayout	*vlayout=new QVBoxLayout;
+	QHBoxLayout	*hlayout;
+	QPushButton	*button;
+	QLabel		*label;
+	optionsWindow=new QDialog(nullptr,Qt::Dialog);
+
+	optionsWindow->setWindowTitle("Select Options");
+	optionsWindow->setWindowModality(Qt::ApplicationModal);
+
+	opts=new QComboBox;
+
+	QObject::connect(opts,QOverload<int>::of(&QComboBox::activated),[](int index)
+		{
+			setoption->setText(opts->currentData().toString().right(opts->currentData().toString().length()-1));
+			if(opts->currentData().toString().at(0)=='1')
+				useoption->setChecked(true);
+			else
+				useoption->setChecked(false);
+		});
+
+	useoption=new QCheckBox("Use this");
+	QObject::connect(useoption,&QCheckBox::stateChanged,[](int state)
+		{
+			if(useoption->isChecked()==true)
+				opts->setItemData(opts->currentIndex(),QString("1%1").arg(setoption->text()));
+			else
+				opts->setItemData(opts->currentIndex(),QString("0%1").arg(setoption->text()));
+		});
+
+	setOptionsCombo();
+
+	vlayout->setAlignment(Qt::AlignTop);
+	vlayout->addWidget(opts);
+	hlayout=new QHBoxLayout;
+	hlayout->addWidget(useoption);
+	setoption=new QLineEdit("");
+	hlayout->addWidget(setoption);
+	QObject::connect(setoption,&QLineEdit::textEdited,[](QString text)
+		{
+			if(useoption->isChecked()==true)
+				opts->setItemData(opts->currentIndex(),QString("1%1").arg(text));
+			else
+				opts->setItemData(opts->currentIndex(),QString("0%1").arg(text));
+		});
+
+	vlayout->addLayout(hlayout);
+
+//seperator
+	hlayout=new QHBoxLayout;
+	label=new QLabel;
+	label->setFrameStyle(QFrame::Sunken | QFrame::HLine);
+	vlayout->addWidget(label);
+
+//buttons
+//apply
+	hlayout=new QHBoxLayout;
+	button=new QPushButton("Apply");
+	QObject::connect(button,&QPushButton::clicked,[]()
+		{
+			QString	co="";
+			optionsWindow->hide();
+			customOptions->clear();
+			for(int j=0;j<opts->count();j++)
+				{
+					if(opts->itemData(j).toString().at(0)=='1')
+						{
+							co+=QString("%1=%2:").arg(opts->itemText(j)).arg(opts->itemData(j).toString().right(opts->itemData(j).toString().length()-1));
+						}
+				}
+			customOptions->setText(co);
+		});
+	hlayout->addWidget(button);
+	hlayout->addStretch();
+
+//cancel
+	button=new QPushButton("Cancel");
+	QObject::connect(button,&QPushButton::clicked,[]()
+		{
+			optionsWindow->hide();
+			
+		});
+	hlayout->addWidget(button);
+	vlayout->addLayout(hlayout);
+
+	optionsWindow->setLayout(vlayout);
+	//optionsWindow->resize(480,200);
+}
+
 int main(int argc, char **argv)
 {
 	QApplication			app(argc, argv);
-//	QDialog				window(nullptr,Qt::Dialog);
 	QVBoxLayout			*vlayout=new QVBoxLayout;
 	QHBoxLayout			*hlayout=new QHBoxLayout;
 	QLabel				*label=new QLabel("Printers:");
@@ -166,6 +276,7 @@ int main(int argc, char **argv)
 	QObject::connect(plist,QOverload<int>::of(&QComboBox::activated),[](int index)
 		{
 			remakePaperSizes();
+			setOptionsCombo();
 		});
 
 //quality
@@ -193,14 +304,14 @@ int main(int argc, char **argv)
 
 //files
 	hlayout=new QHBoxLayout;
-	button=new QPushButton("Select files");
+	button=new QPushButton("  Select  files  ");
 	QObject::connect(button,&QPushButton::clicked,[]()
 		{
 			QStringList	files;
 			QFileDialog dialog(nullptr,Qt::Dialog|Qt::WindowStaysOnTopHint);
 			dialog.setWindowModality(Qt::WindowModal);
 			dialog.setFileMode(QFileDialog::AnyFile);
-			files=dialog.getOpenFileNames((QDialog *)&window,"Open Files");
+			files=dialog.getOpenFileNames(window,"Open Files");
 			if(files.count())
 				fileNames->setText(files.join(':'));
 		});
@@ -210,8 +321,13 @@ int main(int argc, char **argv)
 
 //options
 	hlayout=new QHBoxLayout;
-	label=new QLabel("Options:\t");
-	hlayout->addWidget(label);
+	button=new QPushButton("Select options");
+	QObject::connect(button,&QPushButton::clicked,[]()
+		{
+			optionsWindow->show();
+		});
+
+	hlayout->addWidget(button);
 	hlayout->addWidget(customOptions);
 	vlayout->addLayout(hlayout);
 
@@ -310,7 +426,9 @@ int main(int argc, char **argv)
 	window->setLayout(vlayout);
 	if(window->restoreGeometry(prefs.value("geometry").toByteArray())==false)
 		window->resize(480,200);
-	
+
+	buildOptionsDialog();
+
 	window->show();
 
 	retval=app.exec();
