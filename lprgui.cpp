@@ -32,7 +32,7 @@ QLineEdit	*fileNames;
 
 QComboBox	*opts;
 QDialog		*optionsWindow;
-QLineEdit	*setoption;
+QLineEdit	*setOption;
 QCheckBox	*useoption;
 QLineEdit	*option;
 
@@ -81,42 +81,67 @@ void saveSettings(void)
 	prefs.setValue("geometry",window->saveGeometry());
 }
 
-void doPrint(void)
+void doPrint(bool dryrun)
 {
 	QStringList args;
 	QStringList coptions;
 	QStringList filestoprint;
 
-	filestoprint=fileNames->text().trimmed().split(':');
+	filestoprint=fileNames->text().trimmed().split(';');
 	if(customOptions->text().isEmpty()==false)
 		{
 			coptions.clear();
-			coptions=customOptions->text().split(':');
+			coptions=customOptions->text().split(';');
 		}
 
 	for(int j=0;j<filestoprint.count();j++)
 		{
 			args.clear();
-
-			args<<"-P"<<plist->currentText();
-			args<<"-o"<<QString("print-quality=%1").arg(qual->currentIndex()+3);
-			args<<"-o"<<QString("media=%1").arg(size->currentText());
-			if(landscape->isChecked()==true)
-				args<<"-o"<<"orientation-requested=4";
-			if(monochrome->isChecked()==true)
-				args<<"-o"<<"print-color-mode=monochrome";
-			else
-				args<<"-o"<<"print-color-mode=color";
-			args<<"-#"<<copies->text().trimmed();
-			if(customOptions->text().isEmpty()==false)
+			if(dryrun==false)
 				{
-					for(int k=0;k<coptions.count();k++)
-						args<<"-o"<<coptions.at(k);
-				}
-
-			args<<filestoprint.at(j).trimmed();
-			QProcess::startDetached("lpr",args);
+					args<<"-P"<<plist->currentText();
+					args<<"-o"<<QString("print-quality=%1").arg(qual->currentIndex()+3);
+					args<<"-o"<<QString("media=%1").arg(size->currentText());
+					if(landscape->isChecked()==true)
+						args<<"-o"<<"orientation-requested=4";
+					if(monochrome->isChecked()==true)
+						args<<"-o"<<"print-color-mode=monochrome";
+					else
+						args<<"-o"<<"print-color-mode=color";
+					args<<"-#"<<copies->text().trimmed();
+					if(customOptions->text().isEmpty()==false)
+						{
+							for(int k=0;k<coptions.count();k++)
+								{
+									if(coptions.at(k).isEmpty()==false)
+										args<<"-o"<<coptions.at(k);
+								}
+						}
+					args<<filestoprint.at(j).trimmed();
+					QProcess::startDetached("lpr",args);
 //qDebug()<<"lpr"<<args.join(" ");
+				}
+			else
+				{
+					QTextStream out(stdout);
+					out<<"lpr -P \""<<plist->currentText()<<"\"";
+					out<<" -o \""<<QString("print-quality=%1").arg(qual->currentIndex()+3)<<"\"";
+					out<<" -o \""<<QString("media=%1").arg(size->currentText())<<"\"";
+					if(landscape->isChecked()==true)
+						out<<" -o \"orientation-requested=4\"";
+					if(monochrome->isChecked()==true)
+						out<<" -o \"print-color-mode=monochrome\"";
+					else
+						out<<" -o \"print-color-mode=color\"";
+					out<<" -# "<<copies->text().trimmed();
+					if(customOptions->text().isEmpty()==false)
+						for(int k=0;k<coptions.count();k++)
+							{
+								if(coptions.at(k).isEmpty()==false)
+									out<<" -o \""<<coptions.at(k)<<"\"";
+							}
+					out<<" "<<filestoprint.at(j).trimmed()<<Qt::endl;
+				}
 		}
 }
 
@@ -124,14 +149,25 @@ void setOptionsCombo(void)
 {
 	QStringList options=runPipeAndCapture(QString("lpoptions -p '%1'|sed -n \"s|\\([^=]*\\)=\\([^' ]*\\s\\)|\\1=\\2\\n|pg\"|awk -F\"'\" '{print $1 $2 \"\\n\" $NF}'|sort -u|awk '{$1=$1};NF'").arg(plist->currentText()));	
 
+	setOption->setText(options.at(0).split('=').at(1));
+	//customOptions->setText("");
+	useoption->setChecked(false);
+
+	if(options.contains("orientation-requested")==false)
+		options<<"orientation-requested=4";
+
+	if(options.contains("sides")==false)
+		options<<"sides=one-sided";
+
+	options.removeDuplicates();
+	options.sort();
 	opts->clear();
+
 	for(int j=0;j<options.count();j++)
 		{
 			opts->addItem(options.at(j).split('=').at(0));
 			opts->setItemData(j,QString("0%1").arg(options.at(j).split('=').at(1)));
 		}
-	useoption->setChecked(false);
-	customOptions->setText("");
 }
 
 void buildOptionsDialog(void)
@@ -149,7 +185,7 @@ void buildOptionsDialog(void)
 
 	QObject::connect(opts,QOverload<int>::of(&QComboBox::activated),[](int index)
 		{
-			setoption->setText(opts->currentData().toString().right(opts->currentData().toString().length()-1));
+			setOption->setText(opts->currentData().toString().right(opts->currentData().toString().length()-1));
 			if(opts->currentData().toString().at(0)=='1')
 				useoption->setChecked(true);
 			else
@@ -160,20 +196,19 @@ void buildOptionsDialog(void)
 	QObject::connect(useoption,&QCheckBox::stateChanged,[](int state)
 		{
 			if(useoption->isChecked()==true)
-				opts->setItemData(opts->currentIndex(),QString("1%1").arg(setoption->text()));
+				opts->setItemData(opts->currentIndex(),QString("1%1").arg(setOption->text()));
 			else
-				opts->setItemData(opts->currentIndex(),QString("0%1").arg(setoption->text()));
+				opts->setItemData(opts->currentIndex(),QString("0%1").arg(setOption->text()));
 		});
-
-	setOptionsCombo();
 
 	vlayout->setAlignment(Qt::AlignTop);
 	vlayout->addWidget(opts);
 	hlayout=new QHBoxLayout;
 	hlayout->addWidget(useoption);
-	setoption=new QLineEdit("");
-	hlayout->addWidget(setoption);
-	QObject::connect(setoption,&QLineEdit::textEdited,[](QString text)
+	setOption=new QLineEdit("");
+
+	hlayout->addWidget(setOption);
+	QObject::connect(setOption,&QLineEdit::textEdited,[](QString text)
 		{
 			if(useoption->isChecked()==true)
 				opts->setItemData(opts->currentIndex(),QString("1%1").arg(text));
@@ -202,7 +237,7 @@ void buildOptionsDialog(void)
 				{
 					if(opts->itemData(j).toString().at(0)=='1')
 						{
-							co+=QString("%1=%2:").arg(opts->itemText(j)).arg(opts->itemData(j).toString().right(opts->itemData(j).toString().length()-1));
+							co+=QString("%1=%2;").arg(opts->itemText(j)).arg(opts->itemData(j).toString().right(opts->itemData(j).toString().length()-1));
 						}
 				}
 			customOptions->setText(co);
@@ -257,7 +292,7 @@ int main(int argc, char **argv)
 			{{"s","size"},"Paper size","size"},
 			{{"l","landscape"},"Set landscape"},
 			{{"m","monochrome"},"Monochrome"},
-			{{"o","options"},"Custom options","option1:option2:...:optionN"},
+			{{"o","options"},"Custom options","option1;option2;...;optionN"},
 			{{"c","copies"},"Number of copies","copies"}
 		});
 	parser.addHelpOption();
@@ -268,8 +303,11 @@ int main(int argc, char **argv)
 
 	vlayout->setAlignment(Qt::AlignTop);
 
-	printerslist<<runPipeAndCapture("lpstat -p | awk '{print $2}'");
+	printerslist<<runPipeAndCapture("lpstat -v|awk '{print $3}'|awk -F: '{print $1}'");
 	plist->addItems(printerslist);
+
+	buildOptionsDialog();
+
 	hlayout->addWidget(label);
 	hlayout->addWidget(plist);
 	vlayout->addLayout(hlayout);
@@ -313,7 +351,7 @@ int main(int argc, char **argv)
 			dialog.setFileMode(QFileDialog::AnyFile);
 			files=dialog.getOpenFileNames(window,"Open Files");
 			if(files.count())
-				fileNames->setText(files.join(':'));
+				fileNames->setText(files.join(';'));
 		});
 	hlayout->addWidget(button);
 	hlayout->addWidget(fileNames);
@@ -359,8 +397,17 @@ int main(int argc, char **argv)
 	button=new QPushButton("Print files and quit");
 	QObject::connect(button,&QPushButton::clicked,[&app]()
 		{
-			doPrint();
+			doPrint(false);
 			app.quit();
+		});
+	hlayout->addWidget(button);
+	hlayout->addStretch();
+
+//print lpr command to stdout
+	button=new QPushButton("Echo command to stdout");
+	QObject::connect(button,&QPushButton::clicked,[&app]()
+		{
+			doPrint(true);
 		});
 	hlayout->addWidget(button);
 	hlayout->addStretch();
@@ -369,10 +416,12 @@ int main(int argc, char **argv)
 	button=new QPushButton("Print files");
 	QObject::connect(button,&QPushButton::clicked,[]()
 		{
-			doPrint();
+			doPrint(false);
 		});
 	hlayout->addWidget(button);
 	vlayout->addLayout(hlayout);
+
+	setOptionsCombo();
 
 //set options
 //set printer
@@ -409,7 +458,7 @@ int main(int argc, char **argv)
 //set filelist
 	fileslist=parser.positionalArguments();
 	if(fileslist.count())
-		fileNames->setText(fileslist.join(':'));
+		fileNames->setText(fileslist.join(';'));
 
 //set custom options
 	if(prefs.contains("options")==true)
@@ -427,13 +476,9 @@ int main(int argc, char **argv)
 	if(window->restoreGeometry(prefs.value("geometry").toByteArray())==false)
 		window->resize(480,200);
 
-	buildOptionsDialog();
-
 	window->show();
-
 	retval=app.exec();
 
 	saveSettings();
-
 	return(retval);
 }
