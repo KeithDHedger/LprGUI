@@ -23,6 +23,7 @@ sudo make install<br>
 or make INSTALL_ROOT="/path/to/install/location" install<br>
 
 You can run the application without needing to install it if you just want to try it.<br>
+App will now exit gracefully if CUPS is not running or there are no reported printers.<br>
 
 Files to be printed can be selected via the 'Select Files' button or entered into the files box manualy, files should be sepereated by a colon like so:<br>
 /media/LinuxData/Development64/CPPScripts/qt5/hilighting/C++.txt.cpp:/media/LinuxData/Development64/CPPScripts/qt5/hilighting/testqthilite.cpp<br>

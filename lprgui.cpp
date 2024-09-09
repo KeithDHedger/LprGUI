@@ -270,6 +270,12 @@ int main(int argc, char **argv)
 	QPushButton			*button;
 	QStringList			printerslist;
 	QStringList			fileslist;
+	QStringList			running=runPipeAndCapture("lpstat -r");
+	if(running.at(0).contains("not running")==true)
+		{
+			QMessageBox::critical(nullptr,"Critical error ...","Can't continue, CUPs is not running ...");
+			return(1);
+		}
 
 	window=new QDialog(nullptr,Qt::Dialog);
 	plist=new QComboBox;
@@ -304,8 +310,13 @@ int main(int argc, char **argv)
 	vlayout->setAlignment(Qt::AlignTop);
 
 	printerslist<<runPipeAndCapture("lpstat -v|awk '{print $3}'|awk -F: '{print $1}'");
-	plist->addItems(printerslist);
-
+	if(printerslist.isEmpty()==false)
+		plist->addItems(printerslist);
+	else
+		{
+			QMessageBox::critical(nullptr,"Critical error ...","Can't continue, no printers found ...");
+			return(1);
+		}
 	buildOptionsDialog();
 
 	hlayout->addWidget(label);
