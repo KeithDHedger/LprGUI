@@ -1,4 +1,5 @@
-LprGUI<br>
+# LprGUI
+![fatal](lprgui.png "lprgui --type=fatal")<br>
 
 QT5 based frontend for lpr cli command.<br>
 
@@ -9,17 +10,20 @@ You can also use this as a standalone app to print any file.
 
 You will also of course need a build system ( g++,make qt5 dev files etc ).<br>
 
-building/installing:<br>
-
-make<br>
-sudo make install<br>
+**Building/Installing:**
+```console
+make
+sudo make install
+```
 or make DESTDIR="/path/to/install/location" install<br>
 
-Or you can build with qmake:<br>
-mkdir build && build<br>
-qmake ..<br>
-make<br>
-sudo make install<br>
+Or you can build with qmake:
+```console
+mkdir build && build
+qmake ..
+make
+sudo make install
+```
 or make INSTALL_ROOT="/path/to/install/location" install<br>
 
 You can run the application without needing to install it if you just want to try it.<br>
